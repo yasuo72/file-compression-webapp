@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Compression Tool</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { 
+            background-color: #f4f6f9; 
+            font-family: 'Arial', sans-serif;
+        }
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .btn-primary {
+            background-color: #4a90e2;
+            border-color: #4a90e2;
+        }
+        .result-card {
+            margin-top: 20px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #4a90e2;
+        }
+        .info-text {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 class="text-center mb-4">File Compression Tool</h2>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                Compression
+            </div>
+            <div class="card-body">
+                <form id="compressionForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="fileUpload" class="form-label">Select File to Compress</label>
+                        <input class="form-control" type="file" id="fileUpload" name="file" required>
+                        <small class="form-text text-muted">Supports PDF and other file types</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="compressionPercentage" class="form-label">Compression Percentage</label>
+                        <input type="range" class="form-range" id="compressionPercentage" name="compression_percentage" 
+                               min="10" max="90" value="50">
+                        <small id="compressionValue" class="form-text text-muted">50%</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Compress File</button>
+                </form>
+                <div id="compressionResult" class="result-card p-3 mt-3" style="display:none;">
+                    <h5>Compression Results</h5>
+                    <p id="compressionDetails"></p>
+                    <a href="#" id="downloadCompressedFile" class="btn btn-success btn-sm">Download Compressed File</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                Decompression
+            </div>
+            <div class="card-body">
+                <form id="decompressionForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="decompressFileUpload" class="form-label">Select Compressed File to Decompress</label>
+                        <input class="form-control" type="file" id="decompressFileUpload" name="file" required>
+                        <small class="form-text text-muted">Upload compressed PDF or Huffman-compressed files</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Decompress File</button>
+                </form>
+                <div id="decompressionResult" class="result-card p-3 mt-3" style="display:none;">
+                    <h5>Decompression Results</h5>
+                    <p id="decompressionDetails"></p>
+                    <a href="#" id="downloadDecompressedFile" class="btn btn-success btn-sm">Download Decompressed File</a>
+                </div>
+                <div class="info-text">
+                    <p><strong>Note:</strong> 
+                    - For PDFs: Upload the compressed PDF to restore the original file
+                    - For other files: Upload the `.huffman` compressed file
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('compressionPercentage').addEventListener('input', function() {
+            document.getElementById('compressionValue').textContent = this.value + '%';
+        });
+
+        document.getElementById('compressionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+
+            fetch('/compress', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                const resultDiv = document.getElementById('compressionResult');
+                const detailsP = document.getElementById('compressionDetails');
+                const downloadLink = document.getElementById('downloadCompressedFile');
+
+                detailsP.innerHTML = `
+                    Original File: ${data.original_filename}<br>
+                    Original Size: ${data.original_size} bytes<br>
+                    Compressed Size: ${data.compressed_size} bytes<br>
+                    Compression: ${data.compression_percentage}%
+                `;
+                
+                downloadLink.href = `/download/${data.compressed_filename}`;
+                resultDiv.style.display = 'block';
+            })
+            .catch(error => {
+                alert('Compression failed: ' + error.message);
+            });
+        });
+
+        document.getElementById('decompressionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+
+            fetch('/decompress', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                const resultDiv = document.getElementById('decompressionResult');
+                const detailsP = document.getElementById('decompressionDetails');
+                const downloadLink = document.getElementById('downloadDecompressedFile');
+
+                detailsP.innerHTML = `
+                    Decompressed File: ${data.original_filename}
+                `;
+                
+                downloadLink.href = `/download/${data.original_filename}`;
+                resultDiv.style.display = 'block';
+            })
+            .catch(error => {
+                alert('Decompression failed: ' + error.message);
+            });
+        });
+    </script>
+</body>
+</html>
